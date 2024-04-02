@@ -1,5 +1,4 @@
 import torch
-import imageio
 import torch
 import torch.nn as nn
 import matplotlib.pyplot as plt
@@ -151,16 +150,9 @@ class ObjectPoseFittingBatch(nn.Module):
         T = self.Ts
         K = self.Ks
 
-        # image =  (1 - self.image_refs_background) * self.renderers(meshes_world=meshes_world, R=R, T=T)[..., 3]
         image = (1 - self.image_refs_background) * self.renderers(meshes_world, self.faces, mode="silhouettes")
-
         loss = torch.sum((image - self.image_refs) ** 2, dim=(1, 2)) * self.object_masks_valid
         loss_offscreen = self.compute_offscreen_loss(meshes_world, R.float(), T.float(), K.float()) * self.object_masks_valid
-        # loss_sum = torch.sum((1. * loss + 0 * loss_offscreen) / self.object_masks_valid.sum())
-        # loss_sum = ( torch.sum(loss) + 1. * torch.sum(loss_offscreen) ) /  self.object_masks_valid.sum()
-        # loss_reg = torch.sum(self.rotations ** 2)
-        # loss_offscreen = torch.where(torch.isnan(loss_offscreen), torch.zeros_like(loss_offscreen), loss_offscreen)
-
         loss_sum = torch.sum((1. * loss + 10. * loss_offscreen) / self.object_masks_valid.sum())
         images.append(image)
 

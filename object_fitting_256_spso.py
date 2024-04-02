@@ -16,7 +16,7 @@ from utils.vis import show
 from utils.loading_file import load_mask_mpmo, mask_cam_zoom_in
 import cv2
 import matplotlib.pyplot as plt
-from scipy.integrate import cumtrapz
+# from scipy.integrate import cumtrapz
 
 # Set the cuda device
 if torch.cuda.is_available():
@@ -29,21 +29,18 @@ else:
 # print(name)
 # object_name = name.split('_')[-1]
 
-parser = argparse.ArgumentParser('MPMO command line tools')
-parser.add_argument('--seq_name', type=str, default="20230912/data01")
+parser = argparse.ArgumentParser('SPSO command line tools')
 parser.add_argument('--start_frame', type=int, default=0)
-# parser.add_argument('--object_idx', type=int, default=3)
-# parser.add_argument('--camera_path', type=str, default= '/nas/nas_10/NeuralDome/NeuralDome/rgb/20221018/calib/calibration.json')
-parser.add_argument('--root_path', type=str, default='/nas/nas_10/AI-being/ZJY/')
-parser.add_argument('--background_path', type=str, default='1,2,4,5,6')
-parser.add_argument('--foreground_path', type=str, default='3')
-parser.add_argument('--initial_path', type=str, default='/nas/nas_10/AI-being/ZJY/20230912/data01/result/smallsofa/json')
+parser.add_argument('--root_path', type=str, default='/nas/nas_10/AI-being/20240328/basketball_demo')
+parser.add_argument('--background_path', type=str, default='2,3')
+parser.add_argument('--foreground_path', type=str, default='1')
+# parser.add_argument('--initial_path', type=str, default='/nas/nas_10/AI-being/ZJY/20230912/data01/result/smallsofa/json')
 parser.add_argument('--initial_search', action='store_true')
-parser.add_argument('--step', type=int, default=60)
+parser.add_argument('--optimize_R', action='store_true')
+parser.add_argument('--step', type=int, default=1)
 
 args = parser.parse_args()
-print(args.seq_name)
-root_path = join(args.root_path, args.seq_name)
+root_path = args.root_path
 object_idx = int(args.foreground_path)
 seq_step = args.step
 
@@ -53,8 +50,8 @@ with open(txt_name, encoding='utf-8') as file:
     content = content.rstrip()
 objects_name = content.split('\n')
 object_name = objects_name[object_idx-1].split(' ')[1]
-object_path = join(args.root_path, 'Objects_template', object_name, object_name + '_simplified_transformed.obj')
-output_path = join(root_path, 'output', 'object_1fps',object_name)
+object_path = join(args.root_path, 'ObjectTemplate', object_name + '.obj')
+output_path = join(root_path, 'output', 'object', object_name)
 
 
 camera_path = join(root_path,'calibration.json')
@@ -64,15 +61,18 @@ with open(camera_path, 'rb') as f:
 verts, faces_idx, _ = load_obj(object_path)
 verts = verts - verts.mean(0)
 
-imu_data_path = join(root_path, 'imu_data', object_name + '.json')
-with open(imu_data_path, 'rb') as f:
-    imu_data = json.load(f)
+# imu_data_path = join(root_path, 'imu_data', object_name + '.json')
+# with open(imu_data_path, 'rb') as f:
+#     imu_data = json.load(f)
 
+# imu_startframe = int(imu_data['start_frame'])
+# rgb_startframe = imu_startframe
+# rgb_endframe = int(imu_data['end_frame'])
 
-imu_startframe = int(imu_data['start_frame'])
-rgb_startframe = imu_startframe
+video_path = join(root_path, 'videos/0.mp4')
+capture = cv2.VideoCapture(video_path)
+rgb_endframe = int(capture.get(cv2.CAP_PROP_FRAME_COUNT))
 
-rgb_endframe = int(imu_data['end_frame'])
 object_T_reference = None
 
 
@@ -100,53 +100,19 @@ if not os.path.exists(save_json_dir):
 num_view = len(cams)
 object_R_IMU = 0
 object_T_marker = 0
-# rgb_startframe = 272
 if args.start_frame > 0:
     rgb_startframe = args.start_frame
+else:
+    rgb_startframe = 0
+
 
 for frame in range(rgb_startframe, rgb_endframe):
-    object_R_IMU_pre = object_R_IMU
-    object_R_IMU = np.array(imu_data['object_R'][frame-imu_startframe]).T.reshape(3, 3)
+    # object_R_IMU_pre = object_R_IMU
+    # object_R_IMU = np.array(imu_data['object_R'][frame-imu_startframe]).T.reshape(3, 3)
     # object_R_IMU = torch.from_numpy(object_R_IMU).to(device)
     # object_R_IMU = matrix_to_rot6d(object_R_IMU)
     if frame % seq_step != 0 and frame > rgb_startframe:
         continue
-    if frame > rgb_startframe:
-        # acc = torch.from_numpy(np.array(imu_data['object_T'][:frame - imu_startframe]))
-        # acc_next = torch.from_numpy(np.array(imu_data['object_T'][:frame - imu_startframe + 1]))
-        # sampling_rate = 60
-        # time_step = 1.0 / sampling_rate
-        # velocities_per = cumtrapz(acc, dx=time_step, initial=0.0)[-1, :]
-        # velocities = cumtrapz(acc_next, dx=time_step, initial=0.0)[-1, :]
-        # offset_T = torch.from_numpy(velocities_per - velocities).abs().sum()
-
-        # offset_R = (object_R_IMU - object_R_IMU_pre).abs().sum()
-        R_rel = object_R_IMU_pre @ object_R_IMU.T
-        trace_R_rel = np.trace(R_rel)
-        # 确保角度计算的输入在[-1, 1]范围内
-        cos_theta = (trace_R_rel - 1) / 2
-        cos_theta_clipped = np.clip(cos_theta, -1, 1)
-        # 计算角度距离
-        theta = np.arccos(cos_theta_clipped)
-        # 将角度转换为度数
-        theta_degrees = np.degrees(theta)
-        offset_R = theta_degrees
-        # if offset_R < 0.1 and offset_T < 0.02:
-        if offset_R < 0.05:
-        # if (offset_R + 0.1* offset_T ) < 0.0001:
-            object_T = model.translations.detach().cpu().numpy().tolist()
-            object_R = (model.object_R_IMU + 1. * model.rotations).detach().cpu().numpy().tolist()
-            object_RT = dict()
-            object_RT['object_T'] = object_T
-            object_RT['object_R'] = object_R
-            with open(join(save_json_dir, '{}.json'.format(str(frame).zfill(6))), 'w') as json_file:
-                json.dump(object_RT, json_file)
-
-            mesh_temp = model.apply_transformation(model.rotations, model.translations)
-            save_object_name = join(save_obj_dir, '{}.obj'.format(str(frame).zfill(6)))
-            save_obj(save_object_name, verts=mesh_temp[0], faces=model.faces[0])
-            print(frame)
-            continue
 
 
     masks, omask, masks_center, masks_background = load_mask_mpmo(args, root_path, cams, frame,object_idx)
@@ -169,32 +135,13 @@ for frame in range(rgb_startframe, rgb_endframe):
     # image_grid(t2, rows=len(masks)//col_num, cols=col_num ,rgb=False)
     ############ mask display ############
 
-    if args.initial_search == True:
+    if object_T_reference is None:
         object_init_T = keypoints3d[:, :3]
-        object_init_R = matrix_to_rot6d(torch.from_numpy(object_R_IMU.reshape(1, 3, 3)).to(device))
+        object_init_R = torch.eye(3).reshape(1, 3, 3)[:,:,:2].to(device)
     else:
-        if object_T_reference is None:
-            try:
-                # initial_RT_path = os.path.join(args.initial_path, str(frame) + '.json')
-                # with open(initial_RT_path, 'rb') as f:
-                #     object_rotation = json.load(f)
-                # object_R_intial = np.array(object_rotation['object_R']).reshape(1, 3, 2)
-                # object_R_intial = torch.from_numpy(object_R_intial).to(device)
-                # object_T_initial = np.array(object_rotation['object_T'])
-                # object_init_T = object_T_initial
-                # # object_init_T = keypoints3d[:, :3]
-                # object_init_R = object_R_intial
-                object_init_T = keypoints3d[:, :3]
-                object_init_R = matrix_to_rot6d(torch.from_numpy(object_R_IMU.reshape(1, 3, 3)).to(device))
-            except FileNotFoundError:
-                object_init_T = keypoints3d[:, :3]
-                object_init_R = matrix_to_rot6d(torch.from_numpy(object_R_IMU.reshape(1, 3, 3)).to(device))
-                aaa = 1
-        else:
-            # object_init_T = object_T_reference
-            # object_init_R = object_R_reference
-            object_init_T = keypoints3d[:, :3]
-            object_init_R = matrix_to_rot6d(torch.from_numpy(object_R_IMU.reshape(1, 3, 3)).to(device))
+        object_init_T = object_T_reference
+        object_init_R = torch.eye(3).reshape(1, 3, 3)[:,:,:2].to(device)
+
 
     faces = faces_idx.verts_idx
     verts_rgb = torch.ones_like(verts)[None]  # (1, V, 3)
@@ -222,7 +169,7 @@ for frame in range(rgb_startframe, rgb_endframe):
     model = ObjectPoseFittingBatch(meshes=chair_mesh, renderers=silhouette_renderer, image_refs=image_refs, Rs=Rs, Ts=Ts, Ks=K_subs, object_masks_valid=object_masks_valid, image_refs_background=image_refs_background, object_R=object_init_R, object_init_T=object_init_T).to(device)
 
     if object_T_reference is not None:
-        num_iter = 600  #  600
+        num_iter = 100  #  600
         optimizer = torch.optim.Adam(model.parameters(), lr=1e-2)
         begin_iter = 0.1
     else:
@@ -240,16 +187,8 @@ for frame in range(rgb_startframe, rgb_endframe):
         loss, images = model()
         loss.backward()
         optimizer.step()
-        if i == int(begin_iter * num_iter):
-            if args.initial_search == True:
-                rotations_initial = search_initial(model, image_refs)
-                model = ObjectPoseFittingBatch(meshes=chair_mesh, renderers=silhouette_renderer, image_refs=image_refs,
-                                               Rs=Rs, Ts=Ts, Ks=K_subs, object_masks_valid=object_masks_valid,
-                                               image_refs_background=image_refs_background,
-                                               object_R=object_init_R + rotations_initial,
-                                               object_init_T=object_init_T).to(device)
-                optimizer = torch.optim.Adam(model.parameters(), lr=1e-2)
-            model.rotations.requires_grad = True
+        # if i == int(begin_iter * num_iter):
+        #     model.rotations.requires_grad = True
         # if i >= int(0.5*num_iter) and abs(loss-loss_pre) <=0.1:
         #     break
         # print(loss.data)

@@ -29,6 +29,7 @@ The dataset is organized as follows:
 ```
 ├─ Path_of_Folder
     ├─ calibration.json        # camera intrinsics and world-to-cam extrinsics
+    ├─ object_id.txt
     ├─ mask
         ├─ 0
             ├─ 000000.jpg

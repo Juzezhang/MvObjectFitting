@@ -49,7 +49,7 @@ def load_mask_mpmo(args, root_path, cams, frame,object_idx):
     masks = []
     masks_center = []
     masks_background = []
-    omask_dir_path = join(root_path, 'new_masks')
+    omask_dir_path = join(root_path, 'masks')
 
     for idx in cams:
         try:

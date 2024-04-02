@@ -1,0 +1,6 @@
+# 在.gitignore文件中
+*.pkl
+*.npz
+# 其他特定的大文件或目录
+data/smplx/
+model/model_files/

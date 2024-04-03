@@ -60,7 +60,7 @@ with open(camera_path, 'rb') as f:
 
 verts, faces_idx, _ = load_obj(object_path)
 verts = verts - verts.mean(0)
-
+# verts /= 100.
 # imu_data_path = join(root_path, 'imu_data', object_name + '.json')
 # with open(imu_data_path, 'rb') as f:
 #     imu_data = json.load(f)

@@ -16,7 +16,6 @@ from utils.vis import show
 from utils.loading_file import load_mask_mpmo, mask_cam_zoom_in
 import cv2
 import matplotlib.pyplot as plt
-from scipy.integrate import cumtrapz
 
 # Set the cuda device
 if torch.cuda.is_available():
@@ -25,9 +24,6 @@ if torch.cuda.is_available():
 else:
     device = torch.device("cpu")
 
-
-# print(name)
-# object_name = name.split('_')[-1]
 
 parser = argparse.ArgumentParser('MPMO command line tools')
 parser.add_argument('--seq_name', type=str, default="20230912/data01")

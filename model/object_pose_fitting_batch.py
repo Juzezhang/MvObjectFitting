@@ -149,8 +149,8 @@ class ObjectPoseFittingBatch(nn.Module):
         T = self.Ts
         K = self.Ks
 
-        # image = (1 - self.image_refs_background) * self.renderers(meshes_world, self.faces, mode="silhouettes")
-        image = self.renderers(meshes_world, self.faces, mode="silhouettes")
+        image = (1 - self.image_refs_background) * self.renderers(meshes_world, self.faces, mode="silhouettes")
+        # image = self.renderers(meshes_world, self.faces, mode="silhouettes")
         loss = torch.sum((image - self.image_refs) ** 2, dim=(1, 2)) * self.object_masks_valid
         loss_offscreen = self.compute_offscreen_loss(meshes_world, R.float(), T.float(), K.float()) * self.object_masks_valid
         loss_sum = torch.sum((1. * loss + 10. * loss_offscreen) / self.object_masks_valid.sum())

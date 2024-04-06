@@ -1,19 +1,22 @@
 # MvObjectFitting
 
-Welcome to the repository for the MvObjectFitting, which used for object fiiting from multi view images.
-
+Welcome to the MvObjectFitting repository, a comprehensive toolkit designed for object fitting from multi-view images.
 
 ## Updates
-- **April 2, 2024**: Upload of Source Code is now complete!
+- **April 2, 2024**: The source code has been fully uploaded!
 
-## Setting Up Your Environment
+## Environment Setup
 
-To get started, set up your environment as follows:
+To set up your environment, follow these steps:
 
 ```bash
-conda create -n MvObjectFitting python=3.8 -y
+conda create -n MvObjectFitting python=3.9 -y
 conda activate MvObjectFitting
-conda install --file conda_install_cuda117_pakage.txt -c nvidia
+# Install psbody
+sudo apt-get install libboost-dev
+sudo apt install gcc-9 g++-9
+pip install git+https://github.com/MPI-IS/mesh.git
+conda install --file conda_install_cuda117_package.txt -c nvidia
 pip install torch==1.13.0+cu117 torchvision==0.14.0+cu117 torchaudio==0.13.0 --extra-index-url https://download.pytorch.org/whl/cu117
 conda install -c fvcore -c iopath -c conda-forge fvcore iopath
 pip install "git+https://github.com/facebookresearch/pytorch3d.git@stable"
@@ -25,7 +28,8 @@ Note: If you are using the latest versions of PyTorch, you may encounter an erro
 ## Data Structure
 
 
-The dataset is organized as follows:
+Organize your dataset as follows:
+
 ```
 ├─ Path_of_Folder
     ├─ calibration.json        # camera intrinsics and world-to-cam extrinsics

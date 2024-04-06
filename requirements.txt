@@ -1,2 +1,5 @@
 matplotlib
 opencv-python
+trimesh
+tqdm
+chumpy

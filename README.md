@@ -10,12 +10,8 @@ Welcome to the MvObjectFitting repository, a comprehensive toolkit designed for 
 To set up your environment, follow these steps:
 
 ```bash
-conda create -n MvObjectFitting python=3.9 -y
+conda create -n MvObjectFitting python=3.8 -y
 conda activate MvObjectFitting
-# Install psbody
-sudo apt-get install libboost-dev
-sudo apt install gcc-9 g++-9
-pip install git+https://github.com/MPI-IS/mesh.git
 conda install --file conda_install_cuda117_package.txt -c nvidia
 pip install torch==1.13.0+cu117 torchvision==0.14.0+cu117 torchaudio==0.13.0 --extra-index-url https://download.pytorch.org/whl/cu117
 conda install -c fvcore -c iopath -c conda-forge fvcore iopath

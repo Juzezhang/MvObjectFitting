@@ -25,8 +25,8 @@ else:
 
 # Parse command line arguments
 parser = argparse.ArgumentParser(description='hoim3 command line tools')
-parser.add_argument('--root_path', type=str, default="/nas/nas_10/AI-being/20240328/basketball_demo")
-parser.add_argument('--resolution', type=int, default=720)
+parser.add_argument('--root_path', type=str, default="/nas/nas_38/AI-being/elan/20240328/basketball_demo")
+parser.add_argument('--resolution', type=int, default=1080)
 parser.add_argument('--step', type=int, default=60)
 parser.add_argument('--output_path', type=str, default="/nas/nas_10/AI-being/20240328/basketball_demo/output/vis")
 args = parser.parse_args()

@@ -20,6 +20,8 @@ from pytorch3d.renderer import (
     Materials
 )
 from pytorch3d.structures import Meshes, join_meshes_as_scene
+from pytorch3d.utils import cameras_from_opencv_projection
+
 from viz.contact_viz import ContactVisualizer
 
 SMPL_OBJ_COLOR_LIST = [
@@ -329,7 +331,7 @@ class MeshRendererWrapper:
         self.blur_radius = blur_radius
         self.device = device
         self.lights=lights if lights is not None else PointLights(
-            ((0.5, 0.5, 0.5),), ((0.5, 0.5, 0.5),), ((0.05, 0.05, 0.05),), ((0, -2, 0),), device
+            ((0.5, 0.5, 0.5),), ((0.5, 0.5, 0.5),), ((0.05, 0.05, 0.05),), ((0, 10, 0),), device
         )
         # self.lights = np.array([1.0, 1.0, 1.0, 1.0])
         self.materials = materials
@@ -429,10 +431,15 @@ class Pyt3DWrapper:
 
         pyt3d_version = pytorch3d.__version__
         if pyt3d_version >= '0.6.0':
-            cam = PerspectiveCameras(focal_length=focal_length, principal_point=cam_center,
-                                     image_size=((image_size[1], image_size[0]),),
-                                     device=device,
-                                     R=R, T=T, in_ndc=False)
+            # cam = PerspectiveCameras(focal_length=focal_length, principal_point=cam_center,
+            #                          image_size=((image_size[1], image_size[0]),),
+            #                          device=device,
+            #                          R=R, T=T, in_ndc=False)
+            imgSize = torch.tensor(np.array((image_size[0], image_size[1]))).to(device)
+            K = torch.tensor(K, dtype=torch.float32).unsqueeze(0).to(device)
+            R = R.to(device)
+            T = T.to(device)
+            cam = cameras_from_opencv_projection(R, T, K, torch.tensor(imgSize).unsqueeze(0))
 
         else:
             # cam = PerspectiveCameras(focal_length=focal_length, principal_point=cam_center,
@@ -479,7 +486,11 @@ class Pyt3DWrapper:
     def prepare_render(self, meshes, colors, R=None, T=None):
         py3d_meshes = []
         for mesh, color in zip(meshes, colors):
-            vertex = (np.dot(R, mesh.v.T) + T.reshape(3, 1)).T
+            pyt3d_version = pytorch3d.__version__
+            if pyt3d_version >= '0.6.0':
+                vertex = mesh.v
+            else:
+                vertex = (np.dot(R, mesh.v.T) + T.reshape(3, 1)).T
             vc = np.zeros_like(vertex)
             vc[:, :] = color
             text = TexturesVertex([torch.from_numpy(vc).float().to(self.device)])
